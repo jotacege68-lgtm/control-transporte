@@ -3,32 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mis Jornales - Enero 2026</title>
+    <title>Control de Jornales - Interactivo</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 10px; }
-        h2 { text-align: center; color: #333; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: center; }
-        th { background-color: #007bff; color: white; }
-        .paraliza { color: red; font-weight: bold; }
-        .jornal-total { font-size: 1.2em; font-weight: bold; text-align: right; padding: 20px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 10px; }
+        h2 { text-align: center; color: #1a73e8; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px; }
+        th { background-color: #1a73e8; color: white; text-transform: uppercase; }
+        .paraliza { color: #d93025; font-weight: bold; background-color: #fce8e6; cursor: pointer; }
+        tr:hover { background-color: #f8f9fa; cursor: pointer; }
+        .jornal-total { font-size: 1.3em; font-weight: bold; text-align: center; margin-top: 20px; color: #1a73e8; padding: 15px; background: white; border-radius: 10px; }
+        
+        /* Estilo para el formulario que aparecerá */
+        #formulario-edicion { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 10; width: 85%; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
+        button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 5px; font-weight: bold; margin-top: 10px; }
+        .btn-cancelar { background: #5f6368; }
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 5; }
     </style>
 </head>
 <body>
 
-<h2>Enero 2026 - Coche 1089</h2>
-<div id="tabla-contenedor">Cargando datos de Firebase...</div>
+<h2>Enero 2026 - Control</h2>
+<div id="tabla-contenedor">Cargando datos...</div>
 <div class="jornal-total" id="total"></div>
 
+<div id="overlay"></div>
+<div id="formulario-edicion">
+    <h3 id="fecha-editar">Editar Día</h3>
+    <input type="text" id="input-coche" placeholder="Número de Coche">
+    <input type="text" id="input-entrada" placeholder="Hora Entrada (HH:MM)">
+    <input type="text" id="input-salida" placeholder="Hora Salida (HH:MM)">
+    <button onclick="guardarCambios()">GUARDAR EN FIREBASE</button>
+    <button class="btn-cancelar" onclick="cerrarFormulario()">CANCELAR</button>
+</div>
+
 <script type="module">
-    // Configuración de tu Firebase (Sustituye con tus datos si es necesario)
-    const dbUrl = "https://gastoscasa-d8bc2-default-rtdb.firebaseio.com/jornales_enero_2026.json";
+    const dbUrlBase = "https://gastoscasa-d8bc2-default-rtdb.firebaseio.com/jornales_enero_2026";
+    let fechaActual = "";
 
     async function cargarDatos() {
-        const respuesta = await fetch(dbUrl);
+        const respuesta = await fetch(`${dbUrlBase}.json`);
         const datos = await respuesta.json();
-        
-        let tablaHtml = "<table><tr><th>Fecha</th><th>Entrada</th><th>Salida</th><th>Jornal</th></tr>";
+        let tablaHtml = "<table><tr><th>Fecha</th><th>Entrada</th><th>Salida</th><th>Coche</th></tr>";
         let totalJornales = 0;
 
         for (const fecha in datos) {
@@ -36,22 +53,58 @@
             const esParaliza = d.entrada === "PARALIZA";
             totalJornales += d.jornal;
 
-            tablaHtml += `<tr>
+            tablaHtml += `<tr onclick="abrirFormulario('${fecha}', '${d.coche}', '${d.entrada}', '${d.salida}')">
                 <td>${fecha.split('-')[2]}/${fecha.split('-')[1]}</td>
                 <td class="${esParaliza ? 'paraliza' : ''}">${d.entrada}</td>
                 <td>${d.salida}</td>
-                <td>${d.jornal}</td>
+                <td>${d.coche}</td>
             </tr>`;
         }
+        document.getElementById('tabla-contenedor').innerHTML = tablaHtml + "</table>";
+        document.getElementById('total').innerHTML = "Total Jornales: " + totalJornales.toFixed(1);
+    }
 
-        tablaHtml += "</table>";
-        document.getElementById('tabla-contenedor').innerHTML = tablaHtml;
-        document.getElementById('total').innerHTML = "Total Jornales: " + totalJornales;
+    window.abrirFormulario = (fecha, coche, entrada, salida) => {
+        fechaActual = fecha;
+        document.getElementById('fecha-editar').innerText = "Editar: " + fecha;
+        document.getElementById('input-coche').value = coche;
+        document.getElementById('input-entrada').value = entrada;
+        document.getElementById('input-salida').value = salida;
+        document.getElementById('formulario-edicion').style.display = 'block';
+        document.getElementById('overlay').style.display = 'block';
+    }
+
+    window.cerrarFormulario = () => {
+        document.getElementById('formulario-edicion').style.display = 'none';
+        document.getElementById('overlay').style.display = 'none';
+    }
+
+    window.guardarCambios = async () => {
+        const nuevoCoche = document.getElementById('input-coche').value;
+        const nuevaEntrada = document.getElementById('input-entrada').value;
+        const nuevaSalida = document.getElementById('input-salida').value;
+        
+        // Si ya no es PARALIZA, le asignamos 1 jornal
+        const nuevoJornal = (nuevaEntrada !== "PARALIZA" && nuevaEntrada !== "SIN SERVICIO") ? 1.0 : 0.0;
+
+        const actualizacion = {
+            coche: nuevoCoche,
+            entrada: nuevaEntrada,
+            salida: nuevaSalida,
+            jornal: nuevoJornal,
+            carton: "MANUAL"
+        };
+
+        await fetch(`${dbUrlBase}/${fechaActual}.json`, {
+            method: 'PATCH',
+            body: JSON.stringify(actualizacion)
+        });
+
+        cerrarFormulario();
+        cargarDatos(); // Recargar tabla
     }
 
     cargarDatos();
 </script>
 </body>
 </html>
-
-
