@@ -3,65 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Turnos - 1089</title>
+    <title>HORARIOS JC TRABAJO</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        :root { --p: #2c3e50; --s: #3498db; --bg: #f4f7f6; }
-        body { font-family: sans-serif; margin: 0; background: var(--bg); padding-bottom: 70px; }
-        .header { background: var(--p); color: white; padding: 15px; text-align: center; position: sticky; top: 0; z-index: 10; }
-        .nav-tabs { display: flex; background: white; border-bottom: 2px solid #ddd; }
-        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-weight: bold; color: #777; }
-        .tab.active { color: var(--s); border-bottom: 3px solid var(--s); }
-        .content { display: none; padding: 15px; }
+        :root { --p: #2c3e50; --s: #2980b9; --bg: #fdfdfd; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: var(--bg); color: #333; }
+        
+        .header-main { background: #1a252f; color: #ecf0f1; padding: 20px; text-align: center; font-size: 1.5em; font-weight: bold; }
+
+        .nav-tabs { display: flex; background: #fff; border-bottom: 3px solid #eee; position: sticky; top: 0; z-index: 100; }
+        .tab { flex: 1; padding: 20px 10px; text-align: center; cursor: pointer; font-size: 1.2em; font-weight: 900; color: #95a5a6; border-bottom: 4px solid transparent; transition: 0.3s; }
+        .tab.active { color: var(--s); border-bottom: 4px solid var(--s); background: #f9f9f9; }
+
+        .content { display: none; padding: 20px; animation: fadeIn 0.3s; }
         .content.active { display: block; }
-        .card { background: white; border-radius: 10px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .big-text { font-size: 2.5em; font-weight: bold; color: var(--p); margin: 10px 0; }
-        .label { color: #888; font-size: 0.9em; text-transform: uppercase; }
-        .mes-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        table { width: 100%; border-collapse: collapse; background: white; font-size: 0.9em; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        .btn-edit { background: var(--s); color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
-        .tabbar { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
-        .tabbar button { flex: 1; border: none; background: none; padding: 15px; font-size: 0.8em; color: #555; }
-        .paraliza { color: #e74c3c; font-weight: bold; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .card-dia { background: white; border: 2px solid #eee; border-radius: 15px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .dia-titulo { font-size: 1.1em; color: var(--s); font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .big-info { font-size: 2.8em; font-weight: 800; color: #2c3e50; line-height: 1.1; margin: 10px 0; }
+        .sub-info { font-size: 1.4em; color: #7f8c8d; }
+
+        .table-container { overflow-x: auto; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        th { background: #f8f9fa; color: #2c3e50; padding: 12px; border-bottom: 2px solid #dee2e6; text-align: left; }
+        td { padding: 15px 12px; border-bottom: 1px solid #eee; font-size: 1em; }
+        .hoy-row { background: #e3f2fd !important; font-weight: bold; border-left: 5px solid var(--s); }
+
+        .mes-control { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #eee; padding: 10px; border-radius: 8px; }
+        .btn-nav { background: var(--p); color: white; border: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="header" id="mes-titulo">ENERO 2026</div>
+<div class="header-main">HORARIOS JC TRABAJO</div>
+
+<div class="nav-tabs">
+    <div class="tab active" onclick="showTab('tab-dia', this)">DÍA</div>
+    <div class="tab" onclick="showTab('tab-mes', this)">LISTA</div>
+    <div class="tab" onclick="showTab('tab-jornales', this)">JORNALES</div>
+</div>
 
 <div id="tab-dia" class="content active">
-    <div id="dia-hoy"></div>
-    <hr>
-    <div id="dia-manana"></div>
+    <div id="container-hoy"></div>
+    <div id="container-manana"></div>
 </div>
 
 <div id="tab-mes" class="content">
-    <div class="mes-nav">
-        <button onclick="cambiarMes(-1)">◀ Anterior</button>
-        <b id="mes-label">ENERO</b>
-        <button onclick="cambiarMes(1)">Siguiente ▶</button>
+    <div class="mes-control">
+        <button class="btn-nav" onclick="cambiarMes(-1)">◀</button>
+        <span id="mes-actual-label" style="font-weight:bold; font-size: 1.2em;">ENERO 2026</span>
+        <button class="btn-nav" onclick="cambiarMes(1)">▶</button>
     </div>
-    <div id="lista-mes"></div>
+    <div class="table-container" id="lista-mes-html"></div>
 </div>
 
 <div id="tab-jornales" class="content">
-    <div class="card">
-        <div class="label">Jornales del Mes</div>
-        <div class="big-text" id="total-jornales">0.0</div>
-        <div id="detalle-jornales"></div>
+    <div class="card-dia" style="text-align: center;">
+        <div class="dia-titulo">TOTAL ACUMULADO</div>
+        <div class="big-info" id="num-jornales" style="font-size: 4em; color: #27ae60;">0.0</div>
+        <div class="sub-info">Jornales cobrados</div>
     </div>
 </div>
 
-<div class="tabbar">
-    <button onclick="showTab('tab-dia')">🏠 DÍA</button>
-    <button onclick="showTab('tab-mes')">📅 LISTA</button>
-    <button onclick="showTab('tab-jornales')">💰 JORNALES</button>
-</div>
-
 <script>
-// CONFIGURACIÓN DE FIREBASE (Tomada de tu foto)
 const firebaseConfig = {
   apiKey: "AIzaSyBDlHjKXf33pCEznyLAmFrTDXVPeVrH e9Q",
   authDomain: "gastoscasa-d8bc2.firebaseapp.com",
@@ -69,83 +75,94 @@ const firebaseConfig = {
   projectId: "gastoscasa-d8bc2",
   storageBucket: "gastoscasa-d8bc2.firebasestorage.app",
   messagingSenderId: "749635992986",
-  appId: "1:749635992986:web:7916d888f54eb5c3ab0e23",
-  measurementId: "G-PHML1K224T"
+  appId: "1:749635992986:web:7916d888f54eb5c3ab0e23"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let currentYear = 2026;
-let currentMonth = 1; // Enero
+let fechaGlobal = new Date();
+let mesActual = fechaGlobal.getMonth() + 1;
+let anioActual = fechaGlobal.getFullYear();
 
-function showTab(id) {
+const nombresMeses = ["", "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const diasSemana = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
+function showTab(id, el) {
     document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.getElementById(id).classList.add('active');
+    el.classList.add('active');
+}
+
+function obtenerNombreDia(fechaStr) {
+    const d = new Date(fechaStr + "T00:00:00");
+    return diasSemana[d.getDay()];
 }
 
 function calcularJornal(entrada, salida) {
-    if(!entrada || !salida || entrada === "--:--" || salida === "") return 0;
+    if(!entrada || !salida || entrada.includes('?') || entrada.includes('-') || entrada === "A confirmar") return 0;
     const [h1, m1] = entrada.split(':').map(Number);
     const [h2, m2] = salida.split(':').map(Number);
+    if (isNaN(h1) || isNaN(h2)) return 0;
     let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-    if (diff < 0) diff += 1440; // Por si cruza medianoche
+    if (diff < 0) diff += 1440;
     return diff < 240 ? 0.5 : 1.0;
 }
 
-function formatID(m) { return m < 10 ? `0${m}` : m; }
-const nombresMeses = ["", "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-
-function cargarDatos() {
-    const mesKey = `${formatID(currentMonth)}_${nombresMeses[currentMonth]}`;
-    db.ref(`transporte/${currentYear}/${mesKey}`).on('value', (snapshot) => {
-        const data = snapshot.val();
-        renderMes(data);
-        renderDia(data);
+function cargar() {
+    const mesStr = `${mesActual < 10 ? '0'+mesActual : mesActual}_${nombresMeses[mesActual]}`;
+    document.getElementById('mes-actual-label').innerText = `${nombresMeses[mesActual].toUpperCase()} ${anioActual}`;
+    
+    db.ref(`transporte/${anioActual}/${mesStr}`).on('value', snapshot => {
+        const data = snapshot.val() || {};
+        renderizar(data);
     });
 }
 
-function renderMes(data) {
-    if(!data) { document.getElementById('lista-mes').innerHTML = "No hay datos."; return; }
-    let html = `<table><tr><th>Día</th><th>Cartón</th><th>Entrada</th><th>Salida</th></tr>`;
-    let total = 0;
+function renderizar(data) {
+    let html = `<table><tr><th>Día</th><th>Cartón</th><th>Entra</th><th>Sale</th></tr>`;
+    let totalJ = 0;
+    const hoyStr = new Date().toISOString().split('T')[0];
+    const manana = new Date(); manana.setDate(manana.getDate() + 1);
+    const mananaStr = manana.toISOString().split('T')[0];
+
     Object.keys(data).sort().forEach(fecha => {
         const d = data[fecha];
-        const j = d.jornal || calcularJornal(d.hora_entrada, d.hora_salida);
-        total += parseFloat(j);
-        html += `<tr>
-            <td>${fecha.split('-')[2]}</td>
+        const nomDia = obtenerNombreDia(fecha);
+        const esHoy = fecha === hoyStr;
+        
+        let entra = d.hora_entrada;
+        // Cambiado a ???? según pedido
+        let sale = d.hora_salida || (nomDia === "Sáb" || nomDia === "Dom" ? "PARALIZA" : "????");
+        
+        const j = (d.lugar === "PARALIZA" || d.lugar === "LIBRE" || d.lugar === "DESCANSO") ? 0 : (d.jornal || calcularJornal(entra, sale));
+        totalJ += parseFloat(j);
+
+        html += `<tr class="${esHoy ? 'hoy-row' : ''}">
+            <td>${fecha.split('-')[2]} <small>${nomDia}</small></td>
             <td>${d.carton}</td>
-            <td onclick="editar('${fecha}', 'hora_entrada', '${d.hora_entrada}')">${d.hora_entrada}</td>
-            <td onclick="editar('${fecha}', 'hora_salida', '${d.hora_salida || ''}')">${d.hora_salida || '---'}</td>
+            <td onclick="edit('${fecha}','hora_entrada','${entra}')">${entra}</td>
+            <td onclick="edit('${fecha}','hora_salida','${sale}')">${sale}</td>
         </tr>`;
+
+        if(esHoy) actualizarVistaDia('container-hoy', "HOY", nomDia, d, entra, sale);
+        if(fecha === mananaStr) actualizarVistaDia('container-manana', "MAÑANA", nomDia, d, entra, sale);
     });
-    html += `</table>`;
-    document.getElementById('lista-mes').innerHTML = html;
-    document.getElementById('total-jornales').innerText = total.toFixed(1);
+
+    document.getElementById('lista-mes-html').innerHTML = html + `</table>`;
+    document.getElementById('num-jornales').innerText = totalJ.toFixed(1);
 }
 
-function renderDia(data) {
-    // Lógica para hoy y mañana omitida por brevedad para GitHub, pero incluida en el archivo final
+function actualizarVistaDia(id, titulo, nomDia, d, entra, sale) {
+    document.getElementById(id).innerHTML = `
+        <div class="card-dia">
+            <div class="dia-titulo">${titulo} (${nomDia})</div>
+            <div class="big-info">${entra}</div>
+            <div class="sub-info">Sale: ${sale} | Cartón ${d.carton}</div>
+            <div style="margin-top:5px; color:#2980b9; font-weight:bold;">${d.lugar}</div>
+        </div>`;
 }
 
-function cambiarMes(dir) {
-    currentMonth += dir;
-    if(currentMonth > 12) { currentMonth = 1; currentYear++; }
-    if(currentMonth < 1) { currentMonth = 12; currentYear--; }
-    document.getElementById('mes-label').innerText = nombresMeses[currentMonth].toUpperCase();
-    cargarDatos();
-}
-
-function editar(fecha, campo, valorActual) {
-    const nuevo = prompt(`Nuevo valor para ${campo}:`, valorActual);
-    if(nuevo !== null) {
-        const mesKey = `${formatID(currentMonth)}_${nombresMeses[currentMonth]}`;
-        db.ref(`transporte/${currentYear}/${mesKey}/${fecha}`).update({ [campo]: nuevo });
-    }
-}
-
-cargarDatos();
-</script>
-</body>
-</html>
+function edit(fecha, campo, valor) {
+    const n = prompt(`Camb
