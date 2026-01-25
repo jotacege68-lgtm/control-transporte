@@ -3,108 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Jornales - Interactivo</title>
+    <title>Mis Jornales</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 10px; }
-        h2 { text-align: center; color: #1a73e8; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-size: 14px; }
-        th { background-color: #1a73e8; color: white; text-transform: uppercase; }
-        .paraliza { color: #d93025; font-weight: bold; background-color: #fce8e6; cursor: pointer; }
-        tr:hover { background-color: #f8f9fa; cursor: pointer; }
-        .jornal-total { font-size: 1.3em; font-weight: bold; text-align: center; margin-top: 20px; color: #1a73e8; padding: 15px; background: white; border-radius: 10px; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; padding: 10px; color: #333; }
+        .cabecera-mes { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        .cabecera-mes h2 { margin: 0; color: #1a73e8; font-size: 1.2em; text-transform: uppercase; }
+        .flecha { font-size: 1.5em; color: #1a73e8; cursor: pointer; padding: 0 15px; font-weight: bold; }
+
+        /* Vista Rápida Hoy y Mañana */
+        .vista-rapida { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .card { background: #1a73e8; color: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .card h3 { margin: 0 0 5px 0; font-size: 0.9em; opacity: 0.9; }
+        .card div { font-size: 1.2em; font-weight: bold; }
+
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-size: 0.9em; }
+        th { background-color: #f8f9fa; color: #666; font-weight: 600; }
         
-        /* Estilo para el formulario que aparecerá */
-        #formulario-edicion { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 10; width: 85%; }
-        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
-        button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 5px; font-weight: bold; margin-top: 10px; }
-        .btn-cancelar { background: #5f6368; }
-        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 5; }
+        /* Colores de Estado */
+        .paraliza { color: #d93025; font-weight: bold; background-color: #fce8e6; }
+        .enfermo { color: #f29900; font-weight: bold; background-color: #fff4e5; }
+        .licencia { color: #188038; font-weight: bold; background-color: #e6f4ea; }
+
+        #formulario-edicion { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); z-index: 10; width: 80%; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .btn-guardar { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; }
+        .btn-cerrar { width: 100%; padding: 10px; background: none; color: #666; border: none; margin-top: 10px; }
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 5; }
     </style>
 </head>
 <body>
 
-<h2>Enero 2026 - Control</h2>
-<div id="tabla-contenedor">Cargando datos...</div>
-<div class="jornal-total" id="total"></div>
+    <div class="cabecera-mes">
+        <div class="flecha" onclick="cambiarMes(-1)">&#10094;</div>
+        <h2 id="mes-titulo">Cargando...</h2>
+        <div class="flecha" onclick="cambiarMes(1)">&#10095;</div>
+    </div>
 
-<div id="overlay"></div>
-<div id="formulario-edicion">
-    <h3 id="fecha-editar">Editar Día</h3>
-    <input type="text" id="input-coche" placeholder="Número de Coche">
-    <input type="text" id="input-entrada" placeholder="Hora Entrada (HH:MM)">
-    <input type="text" id="input-salida" placeholder="Hora Salida (HH:MM)">
-    <button onclick="guardarCambios()">GUARDAR EN FIREBASE</button>
-    <button class="btn-cancelar" onclick="cerrarFormulario()">CANCELAR</button>
-</div>
+    <div class="vista-rapida">
+        <div class="card">
+            <h3>HOY</h3>
+            <div id="hoy-dato">--:--</div>
+        </div>
+        <div class="card" style="background: #5f6368;">
+            <h3>MAÑANA</h3>
+            <div id="manana-dato">--:--</div>
+        </div>
+    </div>
 
-<script type="module">
-    const dbUrlBase = "https://gastoscasa-d8bc2-default-rtdb.firebaseio.com/jornales_enero_2026";
-    let fechaActual = "";
+    <div id="tabla-contenedor"></div>
 
-    async function cargarDatos() {
-        const respuesta = await fetch(`${dbUrlBase}.json`);
-        const datos = await respuesta.json();
-        let tablaHtml = "<table><tr><th>Fecha</th><th>Entrada</th><th>Salida</th><th>Coche</th></tr>";
-        let totalJornales = 0;
+    <div id="total" style="text-align: center; font-weight: bold; padding: 20px; font-size: 1.1em;"></div>
 
-        for (const fecha in datos) {
-            const d = datos[fecha];
-            const esParaliza = d.entrada === "PARALIZA";
-            totalJornales += d.jornal;
+    <div id="overlay"></div>
+    <div id="formulario-edicion">
+        <h3 id="fecha-label" style="margin-top:0">Editar Fecha</h3>
+        <p style="font-size: 0.8em; color: #666;">Usa "ENFERMO" o "LICENCIA" en entrada para 0 jornal.</p>
+        <input type="text" id="in-coche" placeholder="Coche">
+        <input type="text" id="in-ent" placeholder="Entrada (o estado)">
+        <input type="text" id="in-sal" placeholder="Salida">
+        <button class="btn-guardar" onclick="guardar()">GUARDAR</button>
+        <button class="btn-cerrar" onclick="cerrar()">Cerrar</button>
+    </div>
 
-            tablaHtml += `<tr onclick="abrirFormulario('${fecha}', '${d.coche}', '${d.entrada}', '${d.salida}')">
-                <td>${fecha.split('-')[2]}/${fecha.split('-')[1]}</td>
-                <td class="${esParaliza ? 'paraliza' : ''}">${d.entrada}</td>
-                <td>${d.salida}</td>
-                <td>${d.coche}</td>
-            </tr>`;
-        }
-        document.getElementById('tabla-contenedor').innerHTML = tablaHtml + "</table>";
-        document.getElementById('total').innerHTML = "Total Jornales: " + totalJornales.toFixed(1);
+<script>
+    const dbUrl = "https://gastoscasa-d8bc2-default-rtdb.firebaseio.com/jornales";
+    let fechaISO = new Date(); // Hoy en Uruguay
+    let mesVisible = fechaISO.getMonth();
+    let anioVisible = fechaISO.getFullYear();
+
+    const mesesNombre = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+    async function cargar() {
+        const idMes = `${anioVisible}-${String(mesVisible + 1).padStart(2, '0')}`;
+        document.getElementById('mes-titulo').innerText = `${mesesNombre[mesVisible]} ${anioVisible}`;
+        
+        try {
+            const res = await fetch(`${dbUrl}_${mesesNombre[mesVisible].toLowerCase()}_${anioVisible}.json`);
+            const datos = await res.json();
+            
+            if(!datos) {
+                document.getElementById('tabla-contenedor').innerHTML = "<p style='text-align:center'>No hay datos para este mes todavía.</p>";
+                return;
+            }
+
+            let html = "<table><tr><th>Día</th><th>Entrada</th><th>Salida</th><th>Coche</th></tr>";
+            let suma = 0;
+            const hoyStr = new Date().toISOString().split('T')[0];
+            const manana = new Date(); manana.setDate(manana.getDate() + 1);
+            const mananaStr = manana.toISOString().split('T')[0];
+
+            Object.keys(datos).sort().forEach(f => {
+                const d = datos[f];
+                let clase = "";
+                if(d.entrada === "PARALIZA") clase = "paraliza";
+                if(d.entrada === "ENFERMO") clase = "enfermo";
+                if(d.entrada === "LICENCIA") clase = "licencia";
+                
+                suma += parseFloat(d.jornal || 0);
+
+                if(f === hoyStr) document.getElementById('hoy-dato').innerText = d.entrada + " / " + d.salida;
+                if(f === mananaStr) document.getElementById('manana-dato').innerText = d.entrada + " / " + d.salida;
+
+                html += `<tr onclick="abrir('${f}', '${d.coche}', '${d.entrada}', '${d.salida}')">
+                    <td>${f.split('-')[2]}</td>
+                    <td class="${clase}">${d.entrada}</td>
+                    <td>${d.salida}</td>
+                    <td>${d.coche}</td>
+                </tr>`;
+            });
+            document.getElementById('tabla-contenedor').innerHTML = html + "</table>";
+            document.getElementById('total').innerText = "Total Jornales: " + suma.toFixed(1);
+        } catch(e) { console.error(e); }
     }
 
-    window.abrirFormulario = (fecha, coche, entrada, salida) => {
-        fechaActual = fecha;
-        document.getElementById('fecha-editar').innerText = "Editar: " + fecha;
-        document.getElementById('input-coche').value = coche;
-        document.getElementById('input-entrada').value = entrada;
-        document.getElementById('input-salida').value = salida;
+    window.cambiarMes = (dir) => {
+        mesVisible += dir;
+        if(mesVisible > 11) { mesVisible = 0; anioVisible++; }
+        if(mesVisible < 0) { mesVisible = 11; anioVisible--; }
+        cargar();
+    }
+
+    let editando = "";
+    window.abrir = (f, c, e, s) => {
+        editando = f;
+        document.getElementById('fecha-label').innerText = f;
+        document.getElementById('in-coche').value = c;
+        document.getElementById('in-ent').value = e;
+        document.getElementById('in-sal').value = s;
         document.getElementById('formulario-edicion').style.display = 'block';
         document.getElementById('overlay').style.display = 'block';
     }
 
-    window.cerrarFormulario = () => {
+    window.cerrar = () => {
         document.getElementById('formulario-edicion').style.display = 'none';
         document.getElementById('overlay').style.display = 'none';
     }
 
-    window.guardarCambios = async () => {
-        const nuevoCoche = document.getElementById('input-coche').value;
-        const nuevaEntrada = document.getElementById('input-entrada').value;
-        const nuevaSalida = document.getElementById('input-salida').value;
-        
-        // Si ya no es PARALIZA, le asignamos 1 jornal
-        const nuevoJornal = (nuevaEntrada !== "PARALIZA" && nuevaEntrada !== "SIN SERVICIO") ? 1.0 : 0.0;
+    window.guardar = async () => {
+        const ent = document.getElementById('in-ent').value.toUpperCase();
+        const sal = document.getElementById('in-sal').value.toUpperCase();
+        const jor = (["PARALIZA", "ENFERMO", "LICENCIA", "SIN SERVICIO"].includes(ent)) ? 0.0 : 1.0;
 
-        const actualizacion = {
-            coche: nuevoCoche,
-            entrada: nuevaEntrada,
-            salida: nuevaSalida,
-            jornal: nuevoJornal,
+        const body = { 
+            coche: document.getElementById('in-coche').value,
+            entrada: ent,
+            salida: sal,
+            jornal: jor,
             carton: "MANUAL"
         };
 
-        await fetch(`${dbUrlBase}/${fechaActual}.json`, {
-            method: 'PATCH',
-            body: JSON.stringify(actualizacion)
-        });
-
-        cerrarFormulario();
-        cargarDatos(); // Recargar tabla
+        const mesPath = `${mesesNombre[mesVisible].toLowerCase()}_${anioVisible}`;
+        await fetch(`${dbUrl}_${mesPath}/${editando}.json`, { method: 'PATCH', body: JSON.stringify(body) });
+        cerrar();
+        cargar();
     }
 
-    cargarDatos();
+    cargar();
 </script>
 </body>
 </html>
