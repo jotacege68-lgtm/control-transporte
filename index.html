@@ -165,4 +165,21 @@ function actualizarVistaDia(id, titulo, nomDia, d, entra, sale) {
 }
 
 function edit(fecha, campo, valor) {
-    const n = prompt(`Camb
+    const n = prompt(`Cambiar ${campo}:`, valor);
+    if(n !== null) {
+        const mesStr = `${mesActual < 10 ? '0'+mesActual : mesActual}_${nombresMeses[mesActual]}`;
+        db.ref(`transporte/${anioActual}/${mesStr}/${fecha}`).update({[campo]: n});
+    }
+}
+
+function cambiarMes(n) {
+    mesActual += n;
+    if(mesActual > 12) { mesActual = 1; anioActual++; }
+    if(mesActual < 1) { mesActual = 12; anioActual--; }
+    cargar();
+}
+
+cargar();
+</script>
+</body>
+</html>
