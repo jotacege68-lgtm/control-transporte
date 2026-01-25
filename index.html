@@ -3,143 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HORARIOS JC - 2DO TURNO</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <title>Mis Jornales - Enero 2026</title>
     <style>
-        :root { --p: #1a252f; --s: #2980b9; --bg: #f8f9fa; --danger: #d32f2f; --sab: #e8f5e9; --dom: #fce4ec; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); padding-bottom: 30px; }
-        .header-main { background: var(--p); color: white; padding: 18px; text-align: center; font-size: 1.3em; font-weight: bold; }
-        .nav-tabs { display: flex; background: white; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .tab { flex: 1; padding: 20px 5px; text-align: center; cursor: pointer; font-size: 1.2em; font-weight: 900; color: #7f8c8d; border-bottom: 5px solid transparent; }
-        .tab.active { color: var(--s); border-bottom: 5px solid var(--s); }
-        .content { display: none; padding: 15px; }
-        .content.active { display: block; }
-        
-        .card-dia { background: white; border-radius: 15px; padding: 25px; margin-bottom: 15px; border-left: 12px solid var(--s); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .dia-titulo { font-size: 1em; color: var(--s); font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
-        .big-info { font-size: 3.8em; font-weight: 800; color: var(--p); margin: 5px 0; }
-        .sub-info { font-size: 1.5em; color: #444; font-weight: 600; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
-
-        .table-container { background: white; border-radius: 10px; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 450px; }
-        td, th { padding: 15px 10px; border-bottom: 1px solid #f0f0f0; text-align: left; }
-        .sabado-row { background-color: var(--sab) !important; }
-        .domingo-row { background-color: var(--dom) !important; }
-        .hoy-row { background: #fff9c4 !important; font-weight: bold; border-left: 6px solid var(--s); }
-        .paraliza-text { color: var(--danger); font-weight: 900; font-style: italic; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 10px; }
+        h2 { text-align: center; color: #333; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: center; }
+        th { background-color: #007bff; color: white; }
+        .paraliza { color: red; font-weight: bold; }
+        .jornal-total { font-size: 1.2em; font-weight: bold; text-align: right; padding: 20px; }
     </style>
 </head>
 <body>
-<div class="header-main">HORARIOS JC - 2DO TURNO</div>
-<div class="nav-tabs">
-    <div class="tab active" onclick="showTab('tab-dia', this)">DÍA</div>
-    <div class="tab" onclick="showTab('tab-mes', this)">LISTA</div>
-    <div class="tab" onclick="showTab('tab-jornales', this)">JORNALES</div>
-</div>
-<div id="tab-dia" class="content active">
-    <div id="container-hoy"></div>
-    <div id="container-manana"></div>
-</div>
-<div id="tab-mes" class="content">
-    <div id="lista-mes-html" class="table-container"></div>
-</div>
-<div id="tab-jornales" class="content">
-    <div class="card-dia" style="text-align: center; border: none;">
-        <div class="dia-titulo">JORNALES DEL MES</div>
-        <div id="num-jornales" style="font-size: 5em; font-weight: 800; color: #27ae60;">0.0</div>
-    </div>
-</div>
 
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyBDlHjKXf33pCEznyLAmFrTDXVPeVrH e9Q",
-  authDomain: "gastoscasa-d8bc2.firebaseapp.com",
-  databaseURL: "https://gastoscasa-d8bc2-default-rtdb.firebaseio.com",
-  projectId: "gastoscasa-d8bc2"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+<h2>Enero 2026 - Coche 1089</h2>
+<div id="tabla-contenedor">Cargando datos de Firebase...</div>
+<div class="jornal-total" id="total"></div>
 
-function getUruguayDate() {
-    return new Date(new Date().toLocaleString("en-US", {timeZone: "America/Montevideo"}));
-}
+<script type="module">
+    // Configuración de tu Firebase (Sustituye con tus datos si es necesario)
+    const dbUrl = "https://gastoscasa-d8bc2-default-rtdb.firebaseio.com/jornales_enero_2026.json";
 
-const nombresMeses = ["", "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-const diasSemana = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    async function cargarDatos() {
+        const respuesta = await fetch(dbUrl);
+        const datos = await respuesta.json();
+        
+        let tablaHtml = "<table><tr><th>Fecha</th><th>Entrada</th><th>Salida</th><th>Jornal</th></tr>";
+        let totalJornales = 0;
 
-function showTab(id, el) {
-    document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    el.classList.add('active');
-}
+        for (const fecha in datos) {
+            const d = datos[fecha];
+            const esParaliza = d.entrada === "PARALIZA";
+            totalJornales += d.jornal;
 
-function cargar() {
-    const f = getUruguayDate();
-    const m = f.getMonth() + 1;
-    const mesKey = `${m < 10 ? '0'+m : m}_${nombresMeses[m]}`;
-    db.ref(`transporte/${f.getFullYear()}/${mesKey}`).on('value', snapshot => renderizar(snapshot.val() || {}));
-}
-
-function renderizar(data) {
-    let html = `<table><tr><th>Día</th><th>Cartón</th><th>Entra</th><th>Sale</th></tr>`;
-    let totalJ = 0;
-    const hoyObj = getUruguayDate();
-    const hoyStr = hoyObj.toISOString().split('T')[0];
-    const mananaObj = new Date(hoyObj); mananaObj.setDate(hoyObj.getDate() + 1);
-    const mananaStr = mananaObj.toISOString().split('T')[0];
-    
-    Object.keys(data).sort().forEach(fecha => {
-        const d = data[fecha];
-        const nomDia = diasSemana[new Date(fecha + "T00:00:00").getDay()];
-        const esHoy = (fecha === hoyStr);
-        const esSab = (nomDia === "Sáb");
-        const esDom = (nomDia === "Dom" || d.tipo === "F");
-
-        // Lógica de PARALIZA: El cartón se mantiene, los horarios cambian
-        let entDisplay = d.hora_entrada;
-        let salDisplay = d.hora_salida || (esDom || esSab ? "PARALIZA" : "????");
-
-        if(entDisplay === "PARALIZA" || salDisplay.includes("PARALIZA")) {
-            entDisplay = '<span class="paraliza-text">PARALIZA</span>';
-            salDisplay = '<span class="paraliza-text">PARALIZA</span>';
-        } else {
-            // Calcular jornal solo si hay horario
-            const [h1, m1] = d.hora_entrada.split(':').map(Number);
-            const [h2, m2] = d.hora_salida.split(':').map(Number);
-            let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-            if (diff < 0) diff += 1440;
-            totalJ += (diff < 240 ? 0.5 : 1.0);
+            tablaHtml += `<tr>
+                <td>${fecha.split('-')[2]}/${fecha.split('-')[1]}</td>
+                <td class="${esParaliza ? 'paraliza' : ''}">${d.entrada}</td>
+                <td>${d.salida}</td>
+                <td>${d.jornal}</td>
+            </tr>`;
         }
 
-        html += `<tr class="${esHoy ? 'hoy-row' : ''} ${esSab ? 'sabado-row' : ''} ${esDom ? 'domingo-row' : ''}">
-            <td>${fecha.split('-')[2]} ${nomDia}</td>
-            <td>${d.carton}</td>
-            <td>${entDisplay}</td>
-            <td>${salDisplay}</td>
-        </tr>`;
+        tablaHtml += "</table>";
+        document.getElementById('tabla-contenedor').innerHTML = tablaHtml;
+        document.getElementById('total').innerHTML = "Total Jornales: " + totalJornales;
+    }
 
-        if(esHoy) updateCard('container-hoy', "HOY", nomDia, d.carton, entDisplay, salDisplay);
-        if(fecha === mananaStr) updateCard('container-manana', "MAÑANA", nomDia, d.carton, entDisplay, salDisplay);
-    });
-    document.getElementById('lista-mes-html').innerHTML = html + `</table>`;
-    document.getElementById('num-jornales').innerText = totalJ.toFixed(1);
-}
-
-function updateCard(id, tit, nom, car, ent, sal) {
-    const isP = ent.includes("PARALIZA");
-    document.getElementById(id).innerHTML = `
-        <div class="card-dia">
-            <div class="dia-titulo">${tit} (${nom}) - 2DO TURNO</div>
-            <div class="big-info">${ent}</div>
-            <div class="sub-info">
-                ${isP ? 'Cartón: ' + car : 'Termina: <b>' + sal + '</b> | Cartón: ' + car}
-            </div>
-        </div>`;
-}
-
-cargar();
+    cargarDatos();
 </script>
 </body>
 </html>
+
+
