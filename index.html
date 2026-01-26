@@ -7,20 +7,18 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; padding: 10px; color: #333; }
         .cabecera-mes { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 15px; }
-        .cabecera-mes h2 { margin: 0; color: #1a73e8; font-size: 1.2em; text-transform: uppercase; }
+        .cabecera-mes h2 { margin: 0; color: #1a73e8; font-size: 1.1em; text-transform: uppercase; }
         .flecha { font-size: 1.5em; color: #1a73e8; cursor: pointer; padding: 0 15px; font-weight: bold; }
 
-        /* Vista Rápida Hoy y Mañana */
         .vista-rapida { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .card { background: #1a73e8; color: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .card h3 { margin: 0 0 5px 0; font-size: 0.9em; opacity: 0.9; }
-        .card div { font-size: 1.2em; font-weight: bold; }
+        .card { background: #1a73e8; color: white; padding: 12px; border-radius: 12px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .card h3 { margin: 0 0 5px 0; font-size: 0.8em; opacity: 0.9; }
+        .card div { font-size: 1.1em; font-weight: bold; }
 
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-size: 0.9em; }
         th { background-color: #f8f9fa; color: #666; font-weight: 600; }
         
-        /* Colores de Estado */
         .paraliza { color: #d93025; font-weight: bold; background-color: #fce8e6; }
         .enfermo { color: #f29900; font-weight: bold; background-color: #fff4e5; }
         .licencia { color: #188038; font-weight: bold; background-color: #e6f4ea; }
@@ -28,7 +26,7 @@
         #formulario-edicion { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); z-index: 10; width: 80%; }
         input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         .btn-guardar { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; }
-        .btn-cerrar { width: 100%; padding: 10px; background: none; color: #666; border: none; margin-top: 10px; }
+        .btn-cerrar { width: 100%; padding: 10px; background: none; color: #666; border: none; margin-top: 10px; width: 100%; }
         #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 5; }
     </style>
 </head>
@@ -52,53 +50,64 @@
     </div>
 
     <div id="tabla-contenedor"></div>
-
-    <div id="total" style="text-align: center; font-weight: bold; padding: 20px; font-size: 1.1em;"></div>
+    <div id="total" style="text-align: center; font-weight: bold; padding: 20px; font-size: 1.2em; color: #1a73e8;"></div>
 
     <div id="overlay"></div>
     <div id="formulario-edicion">
-        <h3 id="fecha-label" style="margin-top:0">Editar Fecha</h3>
-        <p style="font-size: 0.8em; color: #666;">Usa "ENFERMO" o "LICENCIA" en entrada para 0 jornal.</p>
+        <h3 id="fecha-label" style="margin-top:0; color: #1a73e8;">Editar Fecha</h3>
         <input type="text" id="in-coche" placeholder="Coche">
-        <input type="text" id="in-ent" placeholder="Entrada (o estado)">
-        <input type="text" id="in-sal" placeholder="Salida">
-        <button class="btn-guardar" onclick="guardar()">GUARDAR</button>
-        <button class="btn-cerrar" onclick="cerrar()">Cerrar</button>
+        <input type="text" id="in-ent" placeholder="Entrada (ej: 1510)" oninput="mascaraHora(this)">
+        <input type="text" id="in-sal" placeholder="Salida (ej: 2230)" oninput="mascaraHora(this)">
+        <button class="btn-guardar" onclick="guardar()">GUARDAR CAMBIOS</button>
+        <button class="btn-cerrar" onclick="cerrar()">CANCELAR</button>
     </div>
 
 <script>
     const dbUrl = "https://gastoscasa-d8bc2-default-rtdb.firebaseio.com/jornales";
-    let fechaISO = new Date(); // Hoy en Uruguay
-    let mesVisible = fechaISO.getMonth();
-    let anioVisible = fechaISO.getFullYear();
+    const mesesNombre = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    
+    let hoy = new Date();
+    let mesVisible = hoy.getMonth();
+    let anioVisible = hoy.getFullYear();
 
-    const mesesNombre = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    // FUNCIÓN MÁSCARA: Pone los dos puntos automáticamente
+    function mascaraHora(el) {
+        let v = el.value.replace(/\D/g, ""); // Solo números
+        if (el.value.length > 2 && !el.value.includes(":") && !isNaN(el.value.substring(0,2))) {
+            if (v.length > 2) el.value = v.substring(0,2) + ":" + v.substring(2,4);
+        }
+    }
 
     async function cargar() {
-        const idMes = `${anioVisible}-${String(mesVisible + 1).padStart(2, '0')}`;
-        document.getElementById('mes-titulo').innerText = `${mesesNombre[mesVisible]} ${anioVisible}`;
+        const nombreMes = mesesNombre[mesVisible];
+        document.getElementById('mes-titulo').innerText = `${nombreMes} ${anioVisible}`;
         
         try {
-            const res = await fetch(`${dbUrl}_${mesesNombre[mesVisible].toLowerCase()}_${anioVisible}.json`);
+            const res = await fetch(`${dbUrl}_${nombreMes}_${anioVisible}.json`);
             const datos = await res.json();
             
             if(!datos) {
-                document.getElementById('tabla-contenedor').innerHTML = "<p style='text-align:center'>No hay datos para este mes todavía.</p>";
+                document.getElementById('tabla-contenedor').innerHTML = "<p style='text-align:center'>No hay datos.</p>";
+                document.getElementById('total').innerText = "";
                 return;
             }
 
             let html = "<table><tr><th>Día</th><th>Entrada</th><th>Salida</th><th>Coche</th></tr>";
             let suma = 0;
-            const hoyStr = new Date().toISOString().split('T')[0];
-            const manana = new Date(); manana.setDate(manana.getDate() + 1);
-            const mananaStr = manana.toISOString().split('T')[0];
+            
+            const hoyUyu = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Montevideo"}));
+            const hoyStr = hoyUyu.toISOString().split('T')[0];
+            const mananaUyu = new Date(hoyUyu); mananaUyu.setDate(hoyUyu.getDate() + 1);
+            const mananaStr = mananaUyu.toISOString().split('T')[0];
 
             Object.keys(datos).sort().forEach(f => {
                 const d = datos[f];
                 let clase = "";
-                if(d.entrada === "PARALIZA") clase = "paraliza";
-                if(d.entrada === "ENFERMO") clase = "enfermo";
-                if(d.entrada === "LICENCIA") clase = "licencia";
+                const entradaBusq = (d.entrada || "").toUpperCase().trim();
+                
+                if(entradaBusq === "PARALIZA") clase = "paraliza";
+                else if(entradaBusq === "ENFERMO") clase = "enfermo";
+                else if(entradaBusq === "LICENCIA") clase = "licencia";
                 
                 suma += parseFloat(d.jornal || 0);
 
@@ -127,7 +136,7 @@
     let editando = "";
     window.abrir = (f, c, e, s) => {
         editando = f;
-        document.getElementById('fecha-label').innerText = f;
+        document.getElementById('fecha-label').innerText = "Día: " + f.split('-')[2];
         document.getElementById('in-coche').value = c;
         document.getElementById('in-ent').value = e;
         document.getElementById('in-sal').value = s;
@@ -141,9 +150,12 @@
     }
 
     window.guardar = async () => {
-        const ent = document.getElementById('in-ent').value.toUpperCase();
-        const sal = document.getElementById('in-sal').value.toUpperCase();
-        const jor = (["PARALIZA", "ENFERMO", "LICENCIA", "SIN SERVICIO"].includes(ent)) ? 0.0 : 1.0;
+        const ent = document.getElementById('in-ent').value.trim();
+        const sal = document.getElementById('in-sal').value.trim();
+        const entUpper = ent.toUpperCase();
+
+        const palabrasNoJornal = ["PARALIZA", "ENFERMO", "LICENCIA", "SIN SERVICIO", "FERIADO"];
+        const jor = palabrasNoJornal.includes(entUpper) ? 0.0 : 1.0;
 
         const body = { 
             coche: document.getElementById('in-coche').value,
@@ -153,7 +165,7 @@
             carton: "MANUAL"
         };
 
-        const mesPath = `${mesesNombre[mesVisible].toLowerCase()}_${anioVisible}`;
+        const mesPath = `${mesesNombre[mesVisible]}_${anioVisible}`;
         await fetch(`${dbUrl}_${mesPath}/${editando}.json`, { method: 'PATCH', body: JSON.stringify(body) });
         cerrar();
         cargar();
@@ -163,3 +175,4 @@
 </script>
 </body>
 </html>
+
