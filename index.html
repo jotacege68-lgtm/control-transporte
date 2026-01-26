@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -13,9 +14,10 @@
         .vista-rapida { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .card { background: #1a73e8; color: white; padding: 12px; border-radius: 12px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .card h3 { margin: 0 0 5px 0; font-size: 0.8em; opacity: 0.9; }
-        .card div { font-size: 1.1em; font-weight: bold; }
+        .card .info { font-size: 1.1em; font-weight: bold; }
+        .card .sub { font-size: 0.8em; margin-top: 3px; opacity: 0.8; }
 
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; }
         th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-size: 0.9em; }
         th { background-color: #f8f9fa; color: #666; font-weight: 600; }
         
@@ -41,11 +43,13 @@
     <div class="vista-rapida">
         <div class="card">
             <h3>HOY</h3>
-            <div id="hoy-dato">--:--</div>
+            <div id="hoy-dato" class="info">--:--</div>
+            <div id="hoy-coche" class="sub">Coche: --</div>
         </div>
         <div class="card" style="background: #5f6368;">
             <h3>MAÑANA</h3>
-            <div id="manana-dato">--:--</div>
+            <div id="manana-dato" class="info">--:--</div>
+            <div id="manana-coche" class="sub">Coche: --</div>
         </div>
     </div>
 
@@ -56,23 +60,23 @@
     <div id="formulario-edicion">
         <h3 id="fecha-label" style="margin-top:0; color: #1a73e8;">Editar Fecha</h3>
         <input type="text" id="in-coche" placeholder="Coche">
-        <input type="text" id="in-ent" placeholder="Entrada (ej: 1510)" oninput="mascaraHora(this)">
-        <input type="text" id="in-sal" placeholder="Salida (ej: 2230)" oninput="mascaraHora(this)">
-        <button class="btn-guardar" onclick="guardar()">GUARDAR CAMBIOS</button>
+        <input type="text" id="in-ent" placeholder="Entrada" oninput="mascaraHora(this)">
+        <input type="text" id="in-sal" placeholder="Salida" oninput="mascaraHora(this)">
+        <button class="btn-guardar" onclick="guardar()">GUARDAR</button>
         <button class="btn-cerrar" onclick="cerrar()">CANCELAR</button>
     </div>
 
 <script>
     const dbUrl = "https://gastoscasa-d8bc2-default-rtdb.firebaseio.com/jornales";
     const mesesNombre = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    const inicialesDias = ["D", "L", "M", "X", "J", "V", "S"];
     
     let hoy = new Date();
     let mesVisible = hoy.getMonth();
     let anioVisible = hoy.getFullYear();
 
-    // FUNCIÓN MÁSCARA: Pone los dos puntos automáticamente
     function mascaraHora(el) {
-        let v = el.value.replace(/\D/g, ""); // Solo números
+        let v = el.value.replace(/\D/g, "");
         if (el.value.length > 2 && !el.value.includes(":") && !isNaN(el.value.substring(0,2))) {
             if (v.length > 2) el.value = v.substring(0,2) + ":" + v.substring(2,4);
         }
@@ -87,8 +91,7 @@
             const datos = await res.json();
             
             if(!datos) {
-                document.getElementById('tabla-contenedor').innerHTML = "<p style='text-align:center'>No hay datos.</p>";
-                document.getElementById('total').innerText = "";
+                document.getElementById('tabla-contenedor').innerHTML = "<p style='text-align:center'>Sin datos.</p>";
                 return;
             }
 
@@ -105,17 +108,27 @@
                 let clase = "";
                 const entradaBusq = (d.entrada || "").toUpperCase().trim();
                 
+                // Cálculo de la inicial del día
+                const fechaObj = new Date(f + "T12:00:00"); // Forzamos mediodía para evitar errores de zona horaria
+                const inicial = inicialesDias[fechaObj.getDay()];
+                
                 if(entradaBusq === "PARALIZA") clase = "paraliza";
                 else if(entradaBusq === "ENFERMO") clase = "enfermo";
                 else if(entradaBusq === "LICENCIA") clase = "licencia";
                 
                 suma += parseFloat(d.jornal || 0);
 
-                if(f === hoyStr) document.getElementById('hoy-dato').innerText = d.entrada + " / " + d.salida;
-                if(f === mananaStr) document.getElementById('manana-dato').innerText = d.entrada + " / " + d.salida;
+                if(f === hoyStr) {
+                    document.getElementById('hoy-dato').innerText = d.entrada + " / " + d.salida;
+                    document.getElementById('hoy-coche').innerText = "Coche: " + d.coche;
+                }
+                if(f === mananaStr) {
+                    document.getElementById('manana-dato').innerText = d.entrada + " / " + d.salida;
+                    document.getElementById('manana-coche').innerText = "Coche: " + d.coche;
+                }
 
                 html += `<tr onclick="abrir('${f}', '${d.coche}', '${d.entrada}', '${d.salida}')">
-                    <td>${f.split('-')[2]}</td>
+                    <td><strong>${f.split('-')[2]}</strong> <small>${inicial}</small></td>
                     <td class="${clase}">${d.entrada}</td>
                     <td>${d.salida}</td>
                     <td>${d.coche}</td>
@@ -136,7 +149,7 @@
     let editando = "";
     window.abrir = (f, c, e, s) => {
         editando = f;
-        document.getElementById('fecha-label').innerText = "Día: " + f.split('-')[2];
+        document.getElementById('fecha-label').innerText = "Fecha: " + f;
         document.getElementById('in-coche').value = c;
         document.getElementById('in-ent').value = e;
         document.getElementById('in-sal').value = s;
@@ -153,7 +166,6 @@
         const ent = document.getElementById('in-ent').value.trim();
         const sal = document.getElementById('in-sal').value.trim();
         const entUpper = ent.toUpperCase();
-
         const palabrasNoJornal = ["PARALIZA", "ENFERMO", "LICENCIA", "SIN SERVICIO", "FERIADO"];
         const jor = palabrasNoJornal.includes(entUpper) ? 0.0 : 1.0;
 
@@ -170,7 +182,6 @@
         cerrar();
         cargar();
     }
-
     cargar();
 </script>
 </body>
