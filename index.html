@@ -17,16 +17,14 @@
         .card .sub { font-size: 0.8em; margin-top: 3px; opacity: 0.8; }
 
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; }
-        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: center; font-size: 0.9em; }
+        th, td { padding: 10px 5px; border-bottom: 1px solid #eee; text-align: center; font-size: 0.82em; }
         th { background-color: #f8f9fa; color: #666; font-weight: 600; }
         
-        /* ESTILO PARA FILAS ESPECIALES (Sin horario) */
         .fila-especial { color: #d93025; font-weight: bold; background-color: #fce8e6 !important; }
-        
-        .finde { font-weight: 900; color: #000; font-size: 1.1em; }
+        .finde { font-weight: 900; color: #000; }
 
-        #formulario-edicion { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); z-index: 10; width: 80%; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        #formulario-edicion { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); z-index: 10; width: 85%; }
+        input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         .btn-guardar { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; }
         .btn-cerrar { width: 100%; padding: 10px; background: none; color: #666; border: none; margin-top: 10px; width: 100%; }
         #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 5; }
@@ -44,22 +42,23 @@
         <div class="card">
             <h3>HOY</h3>
             <div id="hoy-dato" class="info">--:--</div>
-            <div id="hoy-coche" class="sub">Coche: --</div>
+            <div id="hoy-relevo" class="sub">Rel: --</div>
         </div>
         <div class="card" style="background: #5f6368;">
             <h3>MAÑANA</h3>
             <div id="manana-dato" class="info">--:--</div>
-            <div id="manana-coche" class="sub">Coche: --</div>
+            <div id="manana-relevo" class="sub">Rel: --</div>
         </div>
     </div>
 
     <div id="tabla-contenedor"></div>
-    <div id="total" style="text-align: center; font-weight: bold; padding: 20px; font-size: 1.2em; color: #1a73e8;"></div>
+    <div id="total" style="text-align: center; font-weight: bold; padding: 20px; font-size: 1.1em; color: #1a73e8;"></div>
 
     <div id="overlay"></div>
     <div id="formulario-edicion">
-        <h3 id="fecha-label" style="margin-top:0; color: #1a73e8;">Editar Fecha</h3>
+        <h3 id="fecha-label" style="margin-top:0; color: #1a73e8;">Editar</h3>
         <input type="text" id="in-coche" placeholder="Coche">
+        <input type="text" id="in-relevo" placeholder="Lugar Relevo">
         <input type="text" id="in-ent" placeholder="Entrada" oninput="mascaraHora(this)">
         <input type="text" id="in-sal" placeholder="Salida" oninput="mascaraHora(this)">
         <button class="btn-guardar" onclick="guardar()">GUARDAR</button>
@@ -70,7 +69,6 @@
     const dbUrl = "https://gastoscasa-d8bc2-default-rtdb.firebaseio.com/jornales";
     const mesesNombre = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
     const inicialesDias = ["D", "L", "M", "X", "J", "V", "S"];
-    
     let hoy = new Date();
     let mesVisible = hoy.getMonth();
     let anioVisible = hoy.getFullYear();
@@ -89,15 +87,10 @@
         try {
             const res = await fetch(`${dbUrl}_${nombreMes}_${anioVisible}.json`);
             const datos = await res.json();
-            
-            if(!datos) {
-                document.getElementById('tabla-contenedor').innerHTML = "<p style='text-align:center'>Sin datos.</p>";
-                return;
-            }
+            if(!datos) { document.getElementById('tabla-contenedor').innerHTML = "<p style='text-align:center'>Sin datos.</p>"; return; }
 
-            let html = "<table><tr><th>Día</th><th>Entrada</th><th>Salida</th><th>Coche</th></tr>";
+            let html = "<table><tr><th>Día</th><th>Ent</th><th>Rel</th><th>Sal</th><th>Coch</th></tr>";
             let suma = 0;
-            
             const hoyUyu = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Montevideo"}));
             const hoyStr = hoyUyu.toISOString().split('T')[0];
             const mananaUyu = new Date(hoyUyu); mananaUyu.setDate(hoyUyu.getDate() + 1);
@@ -106,32 +99,27 @@
             Object.keys(datos).sort().forEach(f => {
                 const d = datos[f];
                 let claseFila = "";
-                const entradaBusq = (d.entrada || "").toUpperCase().trim();
-                
+                const ent = (d.entrada || "").toUpperCase().trim();
                 const fechaObj = new Date(f + "T12:00:00");
                 const inicial = inicialesDias[fechaObj.getDay()];
                 const claseFinde = (inicial === "S" || inicial === "D") ? 'class="finde"' : "";
                 
-                // DETECCIÓN DE ESTADOS ESPECIALES PARA PINTAR TODA LA FILA
-                const estadosEspeciales = ["PARALIZA", "VACACIONES", "ENFERMO", "SANCIONADO", "LICENCIA", "SIN SERVICIO"];
-                if(estadosEspeciales.includes(entradaBusq)) {
-                    claseFila = "fila-especial";
-                }
-                
+                if(["PARALIZA", "VACACIONES", "ENFERMO", "SANCIONADO", "LICENCIA"].includes(ent)) claseFila = "fila-especial";
                 suma += parseFloat(d.jornal || 0);
 
                 if(f === hoyStr) {
-                    document.getElementById('hoy-dato').innerText = d.entrada + " / " + d.salida;
-                    document.getElementById('hoy-coche').innerText = "Coche: " + d.coche;
+                    document.getElementById('hoy-dato').innerText = d.entrada;
+                    document.getElementById('hoy-relevo').innerText = "Rel: " + (d.relevo || "--");
                 }
                 if(f === mananaStr) {
-                    document.getElementById('manana-dato').innerText = d.entrada + " / " + d.salida;
-                    document.getElementById('manana-coche').innerText = "Coche: " + d.coche;
+                    document.getElementById('manana-dato').innerText = d.entrada;
+                    document.getElementById('manana-relevo').innerText = "Rel: " + (d.relevo || "--");
                 }
 
-                html += `<tr class="${claseFila}" onclick="abrir('${f}', '${d.coche}', '${d.entrada}', '${d.salida}')">
+                html += `<tr class="${claseFila}" onclick="abrir('${f}', '${d.coche}', '${d.relevo || ""}', '${d.entrada}', '${d.salida}')">
                     <td><strong>${f.split('-')[2]}</strong> <span ${claseFinde}>${inicial}</span></td>
                     <td>${d.entrada}</td>
+                    <td>${d.relevo || "-"}</td>
                     <td>${d.salida}</td>
                     <td>${d.coche}</td>
                 </tr>`;
@@ -149,10 +137,11 @@
     }
 
     let editando = "";
-    window.abrir = (f, c, e, s) => {
+    window.abrir = (f, c, r, e, s) => {
         editando = f;
-        document.getElementById('fecha-label').innerText = "Fecha: " + f;
+        document.getElementById('fecha-label').innerText = "Día: " + f.split('-')[2];
         document.getElementById('in-coche').value = c;
+        document.getElementById('in-relevo').value = r;
         document.getElementById('in-ent').value = e;
         document.getElementById('in-sal').value = s;
         document.getElementById('formulario-edicion').style.display = 'block';
@@ -166,25 +155,21 @@
 
     window.guardar = async () => {
         const ent = document.getElementById('in-ent').value.trim();
-        const sal = document.getElementById('in-sal').value.trim();
-        const entUpper = ent.toUpperCase();
-        const palabrasNoJornal = ["PARALIZA", "VACACIONES", "ENFERMO", "SANCIONADO", "LICENCIA", "SIN SERVICIO", "FERIADO"];
-        const jor = palabrasNoJornal.includes(entUpper) ? 0.0 : 1.0;
-
+        const jor = ["PARALIZA", "VACACIONES", "ENFERMO", "SANCIONADO", "LICENCIA"].includes(ent.toUpperCase()) ? 0.0 : 1.0;
         const body = { 
             coche: document.getElementById('in-coche').value,
+            relevo: document.getElementById('in-relevo').value,
             entrada: ent,
-            salida: sal,
+            salida: document.getElementById('in-sal').value.trim(),
             jornal: jor,
             carton: "MANUAL"
         };
-
         const mesPath = `${mesesNombre[mesVisible]}_${anioVisible}`;
         await fetch(`${dbUrl}_${mesPath}/${editando}.json`, { method: 'PATCH', body: JSON.stringify(body) });
-        cerrar();
-        cargar();
+        cerrar(); cargar();
     }
     cargar();
 </script>
 </body>
 </html>
+
